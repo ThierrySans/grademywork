@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "browserify index.js --s grademywork > dist/grademywork.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/ThierrySans/grademywork/issues"
   },
-  "homepage": "https://github.com/ThierrySans/grademywork#readme"
+  "homepage": "https://github.com/ThierrySans/grademywork#readme",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "axios-cookiejar-support": "^0.5.1",
+    "csv-stringify": "^5.4.0",
+    "js-yaml": "^3.13.1"
+  }
 }
