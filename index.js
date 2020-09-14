@@ -1,6 +1,6 @@
 const yaml = require('js-yaml');
 const axios = require('axios');
-const stringify = require('csv-stringify')
+const stringify = require('csv-stringify');
 
 if (typeof window === 'undefined'){
     axios.defaults.baseURL = 'http://localhost:5000';
@@ -92,11 +92,46 @@ exports.getAssessment = getAssessment = function(username, assessmentCaption){
     return axios.get(url).then(cacheAssessment);
 }
 
+exports.updateAssessment = function(username, assessmentCaption, caption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/'
+           .replace(/:username/g, username)
+           .replace(/:assessmentCaption/g, assessmentCaption);
+    return axios.patch(url, {caption}).then(clearCache);
+}
+
+exports.getAssessmentStats = function(username, assessmentCaption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/stats/'
+                .replace(':username', username)
+                .replace(':assessmentCaption', assessmentCaption);
+    return axios.get(url);
+}
+
+exports.deleteAssessment = function(username, assessmentCaption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/'
+           .replace(/:username/g, username)
+           .replace(/:assessmentCaption/g, assessmentCaption);
+    return axios.delete(url).then(clearCache);
+}
+
 exports.setPublic = function(username, assessmentCaption, isPublic){
     let url = '/api/users/:username/assessments/:assessmentCaption/settings/public'
                 .replace(/:username/g, username)
                 .replace(/:assessmentCaption/g, assessmentCaption)
     return axios.patch(url, {isPublic}).then(clearCache);
+}
+
+exports.setArchive = function(username, assessmentCaption, isArchived){
+    let url = '/api/users/:username/assessments/:assessmentCaption/settings/archive'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+    return axios.patch(url, {isArchived}).then(clearCache);
+}
+
+exports.setRelease = function(username, assessmentCaption, isReleased){
+    let url = '/api/users/:username/assessments/:assessmentCaption/settings/release'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+    return axios.patch(url, {isReleased}).then(clearCache);
 }
 
 exports.setAnswer = function(username, assessmentCaption, sheet, question, answer){
@@ -114,6 +149,53 @@ exports.getSheet = getSheet = function(username, assessmentCaption, sheet){
                 .replace(/:assessmentCaption/g, assessmentCaption)
                 .replace(/:sheet/g, sheet)
     return axios.get(url);
+}
+
+exports.addSheet = function(username, assessmentCaption, caption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/sheets/'
+           .replace(/:username/g, username)
+    .replace(/:assessmentCaption/g, assessmentCaption);
+    return axios.post(url, {caption}).then(clearCache);
+}
+
+exports.updateSheet = function(username, assessmentCaption, sheet, caption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/'
+           .replace(/:username/g, username)
+           .replace(/:assessmentCaption/g, assessmentCaption)
+           .replace(/:sheet/g, sheet);
+    return axios.patch(url, {caption}).then(clearCache);
+}
+
+exports.deleteSheet = function(username, assessmentCaption, sheet){
+     let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/'
+            .replace(/:username/g, username)
+            .replace(/:assessmentCaption/g, assessmentCaption)
+            .replace(/:sheet/g, sheet);
+     return axios.delete(url).then(clearCache);
+}
+
+exports.getPrivileges = function(username, assessmentCaption, sheet){
+    let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/privileges'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+                .replace(/:sheet/g, sheet)
+    return axios.get(url);
+}
+
+exports.addPrivilege = function(username, assessmentCaption, sheet, email, type){
+     let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/privileges'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+        .replace(/:sheet/g, sheet);
+     return axios.put(url, {email, type}).then(clearCache);
+}
+
+exports.deletePrivilege = function(username, assessmentCaption, sheet, email, type){
+     let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/privileges'
+            .replace(/:username/g, username)
+            .replace(/:assessmentCaption/g, assessmentCaption)
+            .replace(/:sheet/g, sheet);
+     return axios.delete(url, {data: {email, type}}).then(clearCache);
 }
 
 exports.sheets2CSV = async function export2CSV(username, assessmentCaption){
@@ -146,5 +228,3 @@ exports.sheets2CSV = async function export2CSV(username, assessmentCaption){
         });
     });
 };  
-
-

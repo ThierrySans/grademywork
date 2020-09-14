@@ -7998,7 +7998,7 @@ function hasOwnProperty(obj, prop) {
 },{"./support/isBuffer":37,"_process":11,"inherits":36}],39:[function(require,module,exports){
 const yaml = require('js-yaml');
 const axios = require('axios');
-const stringify = require('csv-stringify')
+const stringify = require('csv-stringify');
 
 if (typeof window === 'undefined'){
     axios.defaults.baseURL = 'http://localhost:5000';
@@ -8090,11 +8090,46 @@ exports.getAssessment = getAssessment = function(username, assessmentCaption){
     return axios.get(url).then(cacheAssessment);
 }
 
+exports.updateAssessment = function(username, assessmentCaption, caption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/'
+           .replace(/:username/g, username)
+           .replace(/:assessmentCaption/g, assessmentCaption);
+    return axios.patch(url, {caption}).then(clearCache);
+}
+
+exports.getAssessmentStats = function(username, assessmentCaption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/stats/'
+                .replace(':username', username)
+                .replace(':assessmentCaption', assessmentCaption);
+    return axios.get(url);
+}
+
+exports.deleteAssessment = function(username, assessmentCaption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/'
+           .replace(/:username/g, username)
+           .replace(/:assessmentCaption/g, assessmentCaption);
+    return axios.delete(url).then(clearCache);
+}
+
 exports.setPublic = function(username, assessmentCaption, isPublic){
     let url = '/api/users/:username/assessments/:assessmentCaption/settings/public'
                 .replace(/:username/g, username)
                 .replace(/:assessmentCaption/g, assessmentCaption)
     return axios.patch(url, {isPublic}).then(clearCache);
+}
+
+exports.setArchive = function(username, assessmentCaption, isArchived){
+    let url = '/api/users/:username/assessments/:assessmentCaption/settings/archive'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+    return axios.patch(url, {isArchived}).then(clearCache);
+}
+
+exports.setRelease = function(username, assessmentCaption, isReleased){
+    let url = '/api/users/:username/assessments/:assessmentCaption/settings/release'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+    return axios.patch(url, {isReleased}).then(clearCache);
 }
 
 exports.setAnswer = function(username, assessmentCaption, sheet, question, answer){
@@ -8112,6 +8147,53 @@ exports.getSheet = getSheet = function(username, assessmentCaption, sheet){
                 .replace(/:assessmentCaption/g, assessmentCaption)
                 .replace(/:sheet/g, sheet)
     return axios.get(url);
+}
+
+exports.addSheet = function(username, assessmentCaption, caption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/sheets/'
+           .replace(/:username/g, username)
+    .replace(/:assessmentCaption/g, assessmentCaption);
+    return axios.post(url, {caption}).then(clearCache);
+}
+
+exports.updateSheet = function(username, assessmentCaption, sheet, caption){
+    let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/'
+           .replace(/:username/g, username)
+           .replace(/:assessmentCaption/g, assessmentCaption)
+           .replace(/:sheet/g, sheet);
+    return axios.patch(url, {caption}).then(clearCache);
+}
+
+exports.deleteSheet = function(username, assessmentCaption, sheet){
+     let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/'
+            .replace(/:username/g, username)
+            .replace(/:assessmentCaption/g, assessmentCaption)
+            .replace(/:sheet/g, sheet);
+     return axios.delete(url).then(clearCache);
+}
+
+exports.getPrivileges = function(username, assessmentCaption, sheet){
+    let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/privileges'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+                .replace(/:sheet/g, sheet)
+    return axios.get(url);
+}
+
+exports.addPrivilege = function(username, assessmentCaption, sheet, email, type){
+     let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/privileges'
+                .replace(/:username/g, username)
+                .replace(/:assessmentCaption/g, assessmentCaption)
+        .replace(/:sheet/g, sheet);
+     return axios.put(url, {email, type}).then(clearCache);
+}
+
+exports.deletePrivilege = function(username, assessmentCaption, sheet, email, type){
+     let url = '/api/users/:username/assessments/:assessmentCaption/sheets/:sheet/privileges'
+            .replace(/:username/g, username)
+            .replace(/:assessmentCaption/g, assessmentCaption)
+            .replace(/:sheet/g, sheet);
+     return axios.delete(url, {data: {email, type}}).then(clearCache);
 }
 
 exports.sheets2CSV = async function export2CSV(username, assessmentCaption){
@@ -8144,9 +8226,6 @@ exports.sheets2CSV = async function export2CSV(username, assessmentCaption){
         });
     });
 };  
-
-
-
 },{"axios":41,"axios-cookiejar-support":40,"csv-stringify":67,"js-yaml":69,"tough-cookie":101}],40:[function(require,module,exports){
 'use strict';
 
@@ -9728,148 +9807,12 @@ class Stringifier extends Transform {
   constructor(opts = {}){
     super({...{writableObjectMode: true}, ...opts})
     const options = {}
+    let err
     // Merge with user options
     for(let opt in opts){
       options[underscore(opt)] = opts[opt]
     }
-    // Normalize option `bom`
-    if(options.bom === undefined || options.bom === null || options.bom === false){
-      options.bom = false
-    }else if(options.bom !== true){
-      throw new CsvError('CSV_OPTION_BOOLEAN_INVALID_TYPE', [
-        'option `bom` is optional and must be a boolean value,',
-        `got ${JSON.stringify(options.bom)}`
-      ])
-    }
-    // Normalize option `delimiter`
-    if(options.delimiter === undefined || options.delimiter === null){
-      options.delimiter = ','
-    }else if(Buffer.isBuffer(options.delimiter)){
-      options.delimiter = options.delimiter.toString()
-    }else if(typeof options.delimiter !== 'string'){
-      throw new CsvError('CSV_OPTION_DELIMITER_INVALID_TYPE', [
-        'option `delimiter` must be a buffer or a string,',
-        `got ${JSON.stringify(options.delimiter)}`
-      ])
-    }
-    // Normalize option `quote`
-    if(options.quote === undefined || options.quote === null){
-      options.quote = '"'
-    }else if(options.quote === true){
-      options.quote = '"'
-    }else if(options.quote === false){
-      options.quote = ''
-    }else if (Buffer.isBuffer(options.quote)){
-      options.quote = options.quote.toString()
-    }else if(typeof options.quote !== 'string'){
-      throw new CsvError('CSV_OPTION_QUOTE_INVALID_TYPE', [
-        'option `quote` must be a boolean, a buffer or a string,',
-        `got ${JSON.stringify(options.quote)}`
-      ])
-    }
-    // Normalize option `quoted`
-    if(options.quoted === undefined || options.quoted === null){
-      options.quoted = false
-    }else{
-      // todo
-    }
-    // Normalize option `quoted_empty`
-    if(options.quoted_empty === undefined || options.quoted_empty === null){
-      options.quoted_empty = undefined
-    }else{
-      // todo
-    }
-    // Normalize option `quoted_string`
-    if(options.quoted_string === undefined || options.quoted_string === null){
-      options.quoted_string = false
-    }else{
-      // todo
-    }
-    // Normalize option `eof`
-    if(options.eof === undefined || options.eof === null){
-      options.eof = true
-    }else{
-      // todo
-    }
-    // Normalize option `escape`
-    if(options.escape === undefined || options.escape === null){
-      options.escape = '"'
-    }else if(Buffer.isBuffer(options.escape)){
-      options.escape = options.escape.toString()
-    }else if(typeof options.escape !== 'string'){
-      throw new Error(`Invalid Option: escape must be a buffer or a string, got ${JSON.stringify(options.escape)}`)
-    }
-    if (options.escape.length > 1){
-      throw new Error(`Invalid Option: escape must be one character, got ${options.escape.length} characters`)
-    }
-    // Normalize option `header`
-    if(options.header === undefined || options.header === null){
-      options.header = false
-    }else{
-      // todo
-    }
-    // Normalize option `columns`
-    options.columns = this.normalize_columns(options.columns)
-    // Normalize option `quoted`
-    if(options.quoted === undefined || options.quoted === null){
-      options.quoted = false
-    }else{
-      // todo
-    }
-    // Normalize option `cast`
-    if(options.cast === undefined || options.cast === null){
-      options.cast = {}
-    }else{
-      // todo
-    }
-    // Normalize option cast.boolean
-    if(options.cast.boolean === undefined || options.cast.boolean === null){
-      // Cast boolean to string by default
-      options.cast.boolean = value => value ? '1' : ''
-    }
-    // Normalize option cast.date
-    if(options.cast.date === undefined || options.cast.date === null){
-      // Cast date to timestamp string by default
-      options.cast.date = value => '' + value.getTime()
-    }
-    // Normalize option cast.number
-    if(options.cast.number === undefined || options.cast.number === null){
-      // Cast number to string using native casting by default
-      options.cast.number = value => '' + value
-    }
-    // Normalize option cast.object
-    if(options.cast.object === undefined || options.cast.object === null){
-      // Stringify object as JSON by default
-      options.cast.object = value => JSON.stringify(value)
-    }
-    // Normalize option cast.string
-    if(options.cast.string === undefined || options.cast.string === null){
-      // Leave string untouched
-      options.cast.string = function(value){return value}
-    }
-    // Normalize option `quoted_match`
-    if(options.quoted_match === undefined || options.quoted_match === null || options.quoted_match === false){
-      options.quoted_match = null
-    }else if(!Array.isArray(options.quoted_match)){
-      options.quoted_match = [options.quoted_match]
-    }
-    if(options.quoted_match){
-      for(let quoted_match of options.quoted_match){
-        const isString = typeof quoted_match === 'string'
-        const isRegExp = quoted_match instanceof RegExp
-        if(!isString && !isRegExp){
-          throw new Error(`Invalid Option: quoted_match must be a string or a regex, got ${JSON.stringify(quoted_match)}`)
-        }
-      }
-    }
-    // Normalize option `record_delimiter`
-    if(options.record_delimiter === undefined || options.record_delimiter === null){
-      options.record_delimiter = '\n'
-    }else if(Buffer.isBuffer(options.record_delimiter)){
-      options.record_delimiter = options.record_delimiter.toString()
-    }else if(typeof options.record_delimiter !== 'string'){
-      throw new Error(`Invalid Option: record_delimiter must be a buffer or a string, got ${JSON.stringify(options.record_delimiter)}`)
-    }
+    if(err = this.normalize(options)) throw err
     switch(options.record_delimiter){
       case 'auto':
         options.record_delimiter = null
@@ -9900,10 +9843,152 @@ class Stringifier extends Transform {
     this.info = {
       records: 0
     }
-    if(options.bom === true){
-      this.push(bom_utf8)
-    }
     this
+  }
+  normalize(options){
+    // Normalize option `bom`
+    if(options.bom === undefined || options.bom === null || options.bom === false){
+      options.bom = false
+    }else if(options.bom !== true){
+      return new CsvError('CSV_OPTION_BOOLEAN_INVALID_TYPE', [
+        'option `bom` is optional and must be a boolean value,',
+        `got ${JSON.stringify(options.bom)}`
+      ])
+    }
+    // Normalize option `delimiter`
+    if(options.delimiter === undefined || options.delimiter === null){
+      options.delimiter = ','
+    }else if(Buffer.isBuffer(options.delimiter)){
+      options.delimiter = options.delimiter.toString()
+    }else if(typeof options.delimiter !== 'string'){
+      return new CsvError('CSV_OPTION_DELIMITER_INVALID_TYPE', [
+        'option `delimiter` must be a buffer or a string,',
+        `got ${JSON.stringify(options.delimiter)}`
+      ])
+    }
+    // Normalize option `quote`
+    if(options.quote === undefined || options.quote === null){
+      options.quote = '"'
+    }else if(options.quote === true){
+      options.quote = '"'
+    }else if(options.quote === false){
+      options.quote = ''
+    }else if (Buffer.isBuffer(options.quote)){
+      options.quote = options.quote.toString()
+    }else if(typeof options.quote !== 'string'){
+      return new CsvError('CSV_OPTION_QUOTE_INVALID_TYPE', [
+        'option `quote` must be a boolean, a buffer or a string,',
+        `got ${JSON.stringify(options.quote)}`
+      ])
+    }
+    // Normalize option `quoted`
+    if(options.quoted === undefined || options.quoted === null){
+      options.quoted = false
+    }else{
+      // todo
+    }
+    // Normalize option `quoted_empty`
+    if(options.quoted_empty === undefined || options.quoted_empty === null){
+      options.quoted_empty = undefined
+    }else{
+      // todo
+    }
+    // Normalize option `quoted_match`
+    if(options.quoted_match === undefined || options.quoted_match === null || options.quoted_match === false){
+      options.quoted_match = null
+    }else if(!Array.isArray(options.quoted_match)){
+      options.quoted_match = [options.quoted_match]
+    }
+    if(options.quoted_match){
+      for(let quoted_match of options.quoted_match){
+        const isString = typeof quoted_match === 'string'
+        const isRegExp = quoted_match instanceof RegExp
+        if(!isString && !isRegExp){
+          return Error(`Invalid Option: quoted_match must be a string or a regex, got ${JSON.stringify(quoted_match)}`)
+        }
+      }
+    }
+    // Normalize option `quoted_string`
+    if(options.quoted_string === undefined || options.quoted_string === null){
+      options.quoted_string = false
+    }else{
+      // todo
+    }
+    // Normalize option `eof`
+    if(options.eof === undefined || options.eof === null){
+      options.eof = true
+    }else{
+      // todo
+    }
+    // Normalize option `escape`
+    if(options.escape === undefined || options.escape === null){
+      options.escape = '"'
+    }else if(Buffer.isBuffer(options.escape)){
+      options.escape = options.escape.toString()
+    }else if(typeof options.escape !== 'string'){
+      return Error(`Invalid Option: escape must be a buffer or a string, got ${JSON.stringify(options.escape)}`)
+    }
+    if (options.escape.length > 1){
+      return Error(`Invalid Option: escape must be one character, got ${options.escape.length} characters`)
+    }
+    // Normalize option `header`
+    if(options.header === undefined || options.header === null){
+      options.header = false
+    }else{
+      // todo
+    }
+    // Normalize option `columns`
+    options.columns = this.normalize_columns(options.columns)
+    // Normalize option `quoted`
+    if(options.quoted === undefined || options.quoted === null){
+      options.quoted = false
+    }else{
+      // todo
+    }
+    // Normalize option `cast`
+    if(options.cast === undefined || options.cast === null){
+      options.cast = {}
+    }else{
+      // todo
+    }
+    // Normalize option cast.bigint
+    if(options.cast.bigint === undefined || options.cast.bigint === null){
+      // Cast boolean to string by default
+      options.cast.bigint = value => '' + value
+    }
+    // Normalize option cast.boolean
+    if(options.cast.boolean === undefined || options.cast.boolean === null){
+      // Cast boolean to string by default
+      options.cast.boolean = value => value ? '1' : ''
+    }
+    // Normalize option cast.date
+    if(options.cast.date === undefined || options.cast.date === null){
+      // Cast date to timestamp string by default
+      options.cast.date = value => '' + value.getTime()
+    }
+    // Normalize option cast.number
+    if(options.cast.number === undefined || options.cast.number === null){
+      // Cast number to string using native casting by default
+      options.cast.number = value => '' + value
+    }
+    // Normalize option cast.object
+    if(options.cast.object === undefined || options.cast.object === null){
+      // Stringify object as JSON by default
+      options.cast.object = value => JSON.stringify(value)
+    }
+    // Normalize option cast.string
+    if(options.cast.string === undefined || options.cast.string === null){
+      // Leave string untouched
+      options.cast.string = function(value){return value}
+    }
+    // Normalize option `record_delimiter`
+    if(options.record_delimiter === undefined || options.record_delimiter === null){
+      options.record_delimiter = '\n'
+    }else if(Buffer.isBuffer(options.record_delimiter)){
+      options.record_delimiter = options.record_delimiter.toString()
+    }else if(typeof options.record_delimiter !== 'string'){
+      return Error(`Invalid Option: record_delimiter must be a buffer or a string, got ${JSON.stringify(options.record_delimiter)}`)
+    }
   }
   _transform(chunk, encoding, callback){
     if(this.state.stop === true){
@@ -9927,6 +10012,7 @@ class Stringifier extends Transform {
     }
     // Emit the header
     if(this.info.records === 0){
+      this.bom()
       this.headers()
     }
     // Emit and stringify the record if an object or an array
@@ -9962,6 +10048,7 @@ class Stringifier extends Transform {
   }
   _flush(callback){
     if(this.info.records === 0){
+      this.bom()
       this.headers()
     }
     callback()
@@ -10022,7 +10109,7 @@ class Stringifier extends Transform {
     }
     let csvrecord = ''
     for(let i=0; i<record.length; i++){
-      let options
+      let options, err
       let [value, field] = record[i]
       if(typeof value === "string"){
         options = this.options
@@ -10030,11 +10117,16 @@ class Stringifier extends Transform {
         // let { value, ...options } = value
         options = value
         value = options.value
+        delete options.value
         if(typeof value !== "string" && value !== undefined && value !== null){
           this.emit("error", Error(`Invalid Casting Value: returned value must return a string, null or undefined, got ${JSON.stringify(value)}`))
           return
         }
         options = {...this.options, ...options}
+        if(err = this.normalize(options)){
+          this.emit("error", err)
+          return
+        }
       }else if(value === undefined || value === null){
         options = this.options
       }else{
@@ -10052,7 +10144,7 @@ class Stringifier extends Transform {
         const containsEscape = value.indexOf(escape) >= 0 && (escape !== quote)
         const containsRecordDelimiter = value.indexOf(record_delimiter) >= 0
         const quotedString = quoted_string && typeof field === 'string'
-        let quotedMatch = quoted_match && typeof field === 'string' && quoted_match.filter( quoted_match => {
+        let quotedMatch = quoted_match && quoted_match.filter( quoted_match => {
           if(typeof quoted_match === 'string'){
             return value.indexOf(quoted_match) !== -1
           }else{
@@ -10084,6 +10176,12 @@ class Stringifier extends Transform {
     }
     return csvrecord
   }
+  bom(){
+    if(this.options.bom !== true){
+      return
+    }
+    this.push(bom_utf8)
+  }
   headers(){
     if(this.options.header === false){
       return
@@ -10104,6 +10202,8 @@ class Stringifier extends Transform {
     try{
       if(type === 'string'){ // Fine for 99% of the cases
         return [undefined, this.options.cast.string(value, context)]
+      }else if(type === 'bigint'){
+        return [undefined, this.options.cast.bigint(value, context)]
       }else if(type === 'number'){
         return [undefined, this.options.cast.number(value, context)]
       }else if(type === 'boolean'){
@@ -10283,7 +10383,7 @@ const isKey = function(value, object){
     (object != null && value in Object(object))
 }
 const isSymbol = function(value){
-  type = typeof value
+  const type = typeof value
   return type === 'symbol' || (type === 'object' && value && getTag(value) === '[object Symbol]')
 }
 const stringToPath = function(string){
