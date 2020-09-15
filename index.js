@@ -3,8 +3,6 @@ const axios = require('axios');
 const stringify = require('csv-stringify');
 
 if (typeof window === 'undefined'){
-    axios.defaults.baseURL = 'http://localhost:5000';
-
     const axiosCookieJarSupport = require('axios-cookiejar-support').default;
     axiosCookieJarSupport(axios);
 
@@ -12,6 +10,10 @@ if (typeof window === 'undefined'){
     const cookieJar = new tough.CookieJar();
 
     axios.defaults.jar = cookieJar;
+    
+    exports.init = function(url){
+        axios.defaults.baseURL = url;
+    }
 }
 
 axios.interceptors.request.use(function(request){
@@ -198,33 +200,42 @@ exports.deletePrivilege = function(username, assessmentCaption, sheet, email, ty
      return axios.delete(url, {data: {email, type}}).then(clearCache);
 }
 
-exports.sheets2CSV = async function export2CSV(username, assessmentCaption){
-    let user = await getUser();
-    let assessment = await getAssessment(username, assessmentCaption);
-    let questions = assessment.rubrics.reduce(function(acc, rubric){
-        rubric.questions.forEach(function(question){
-            acc[question.id] = {rubric: rubric.caption, question: question.caption, type: question.type, params: question.params};
-        });
-        return acc;
-    }, {});
-    let key = username + '/' + assessmentCaption;
-    let sheets = user.privileges[key].sheets;
-    let records = [];
-    for (let sheet of Object.values(sheets)){
-        let sheetData = await getSheet(username, assessmentCaption, sheet.id);
-        let base = {assessment: key, sheet: sheet.caption}
-        sheetData.answers.forEach(function(answer){
-            records.push({...base, ...questions[answer.questionId], ...{answer: answer.value}});
-        });
-    };
-    let config = {
-            header: true,
-            columns: ['assessment', 'sheet', 'rubric', 'question', 'type', 'params', 'answer']
-    };
-    return new Promise(function(resolve, reject){
-        stringify(records, config, function(err, data){
-            if (err) return reject(err);
-            return resolve(data);
-        });
-    });
-};  
+// exports.exportSummaryTo2CSV = async function (username, assessmentCaption){
+//
+// }
+//
+// exports.exportPrivilegesTo2CSV = async function (username, assessmentCaption){
+//
+// }
+//
+//
+// exports.exportSheetsTo2CSV = async function (username, assessmentCaption){
+//     let user = await getUser();
+//     let assessment = await getAssessment(username, assessmentCaption);
+//     let questions = assessment.rubrics.reduce(function(acc, rubric){
+//         rubric.questions.forEach(function(question){
+//             acc[question.id] = {rubric: rubric.caption, question: question.caption, type: question.type, params: question.params};
+//         });
+//         return acc;
+//     }, {});
+//     let key = username + '/' + assessmentCaption;
+//     let sheets = user.privileges[key].sheets;
+//     let records = [];
+//     for (let sheet of Object.values(sheets)){
+//         let sheetData = await getSheet(username, assessmentCaption, sheet.id);
+//         let base = {assessment: key, sheet: sheet.caption}
+//         sheetData.answers.forEach(function(answer){
+//             records.push({...base, ...questions[answer.questionId], ...{answer: answer.value}});
+//         });
+//     };
+//     let config = {
+//             header: true,
+//             columns: ['assessment', 'sheet', 'rubric', 'question', 'type', 'params', 'answer']
+//     };
+//     return new Promise(function(resolve, reject){
+//         stringify(records, config, function(err, data){
+//             if (err) return reject(err);
+//             return resolve(data);
+//         });
+//     });
+// };
